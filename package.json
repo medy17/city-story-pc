@@ -1,6 +1,7 @@
 {
   "name": "city-story-pc",
   "version": "1.0.0",
+  "author": "medy17",
   "description": "Cross-platform offline PC reimplementation & .s8i/.s8h asset extractor for classic City Story (bring your own APK).",
   "main": "electron/main.js",
   "private": true,

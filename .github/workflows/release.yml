@@ -1,0 +1,80 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            script: dist:win
+            artifact_glob: dist/*.exe
+          - os: macos-latest
+            script: dist:mac
+            artifact_glob: dist/*.dmg
+          - os: ubuntu-latest
+            script: dist:linux
+            artifact_glob: dist/*.AppImage
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build desktop package
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: npm run ${{ matrix.script }}
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: city-story-pc-${{ matrix.os }}
+          path: ${{ matrix.artifact_glob }}
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          body: |
+            ### City Story PC — Offline Cross-Platform Shell (Asset-Free)
+
+            > **Bring Your Own APK:** These downloads contain **zero** copyrighted assets. Launch the app and drop your own **City Story APK** (`com.teamlava.citystory`, v1.0.8) onto the first-run window to decode all sprites, UI graphics, and WAV audio locally.
+
+            - **Windows:** `City Story PC *.exe` (portable, no installer needed)
+            - **macOS:** `City Story PC *.dmg`
+            - **Linux:** `City Story PC *.AppImage`
+          files: release-assets/*
