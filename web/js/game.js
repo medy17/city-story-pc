@@ -26,24 +26,22 @@ class CityStoryGame {
     this.bindUI();
     this.updateHUD();
 
-    // Native WebView2 host save integration (if running in CityStory.exe)
-    if (window.chrome && window.chrome.webview) {
-      window.chrome.webview.addEventListener("message", (ev) => {
-        const msg = ev.data;
-        if (msg && msg.type === "loadSave" && msg.json) {
+    // Native Electron host save integration (with localStorage fallback in browser mode)
+    if (window.cityStoryHost && typeof window.cityStoryHost.loadSave === "function") {
+      window.cityStoryHost.loadSave().then((json) => {
+        if (json) {
           try {
-            const parsed = JSON.parse(msg.json);
+            const parsed = JSON.parse(json);
             if (parsed && Array.isArray(parsed.cells)) {
               this.state = this.normalizeState(parsed);
               this.recalcStats();
               this.engine.centerOnBoard();
               this.updateHUD();
-              this.setSaveStatus("Loaded from CityStory save file");
+              this.setSaveStatus("Loaded from local save file");
             }
           } catch (_) {}
         }
-      });
-      window.chrome.webview.postMessage({ type: "requestSave" });
+      }).catch(() => {});
     }
 
     // Main loop
@@ -163,8 +161,8 @@ class CityStoryGame {
     try {
       localStorage.setItem(SAVE_KEY, json);
     } catch (_) {}
-    if (window.chrome && window.chrome.webview) {
-      window.chrome.webview.postMessage({ type: "save", json });
+    if (window.cityStoryHost && typeof window.cityStoryHost.writeSave === "function") {
+      window.cityStoryHost.writeSave(json).catch(() => {});
     }
     this.setSaveStatus(`Saved at ${new Date().toLocaleTimeString()}`);
   }
@@ -1328,6 +1326,11 @@ class CityStoryGame {
       URL.revokeObjectURL(url);
     });
     document.getElementById("btn-import-save").addEventListener("click", () => document.getElementById("file-import-save").click());
+    const reimportBtn = document.getElementById("btn-reimport-apk");
+    if (reimportBtn && window.cityStoryHost && typeof window.cityStoryHost.openSetup === "function") {
+      reimportBtn.classList.remove("hidden");
+      reimportBtn.addEventListener("click", () => window.cityStoryHost.openSetup());
+    }
     document.getElementById("file-import-save").addEventListener("change", (e) => {
       const file = e.target.files[0];
       if (!file) return;
@@ -1377,6 +1380,11 @@ class CityStoryGame {
         this.togglePlacementRotate();
       } else if (e.key === "m" || e.key === "M") {
         if (document.getElementById("splash-screen").classList.contains("hidden")) this.openMarket();
+      } else if (e.key === "F11") {
+        e.preventDefault();
+        if (window.cityStoryHost && typeof window.cityStoryHost.toggleFullscreen === "function") {
+          window.cityStoryHost.toggleFullscreen();
+        }
       } else if (e.key === "+" || e.key === "=") {
         this.engine.zoomBy(1.18);
       } else if (e.key === "-" || e.key === "_") {

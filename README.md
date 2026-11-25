@@ -1,8 +1,8 @@
 # City Story PC
 
-An offline, native Windows PC reimplementation and asset extraction pipeline for classic **City Story** (TeamLava / Storm8, 2010–2011) — **no Android emulator required**.
+A **cross-platform** (Windows, macOS, Linux) offline desktop reimplementation and asset extractor for classic **City Story** (TeamLava / Storm8, 2010–2011) — built with **Electron**, **no Android emulator required**, and **zero terminal setup** for players.
 
-> **Legal / Copyright Notice:** This repository contains **zero** copyrighted game assets, APKs, or prebuilt binaries. You must supply your own legitimately obtained copy of the `City Story` APK (`com.teamlava.citystory`, tested with v1.0.8) to extract textures, UI art, and audio locally on your machine.
+> **Legal / Copyright Notice:** This repository contains **zero** copyrighted game assets, APKs, or prebuilt binaries. On first launch, the app asks you to drop in your own legitimately obtained copy of the `City Story` APK (`com.teamlava.citystory`, tested with v1.0.8) and decodes all textures, UI art, and audio locally on your machine.
 
 ---
 
@@ -11,50 +11,42 @@ An offline, native Windows PC reimplementation and asset extraction pipeline for
 The original Storm8 backend (`city.teamlava.com`) has been permanently shut down and the original APK targets legacy Android 2.x + 32-bit `armeabi`, making it unplayable on modern devices. However, all isometric building sprites, UI artwork, and WAV audio live directly inside the APK.
 
 This project provides:
-1. **Pure Node.js `.s8i` / `.s8h` Texture Decoder** (`scripts/s8_decoder.js`) — decodes Storm8's custom 16-bit OpenGL ES textures (`RGB565` & `RGBA4444`, bottom-up row order + alpha hitmask) directly to standard PNGs with zero npm dependencies.
-2. **APK Asset Extractor & Catalog Builder** (`scripts/extract_apk.js`, `scripts/build_catalog.js`) — extracts all 630+ sprites, halos, thumbnails, UI graphics, WAV music/SFX, and generates the 275-item catalog from your APK.
-3. **Offline Isometric Game Engine** (`web/`) — true 30° isometric projection (`128×74` tile grid with `0.5`-tile support), painter's depth sorting, 16-state autotiling roads & rivers, construction scaffolding & timers, factory contracts, happiness/population bonus multiplier, quests, storage, land expansions (up to 24×24), photo snapshots, speed toggle (`1x / 5x / 20x`), and optional Sandbox Mode.
-4. **Native Windows Desktop Host** (`native/`) — lightweight `.NET 9 + WebView2` executable (`CityStory.exe`) with local virtual host mapping (no localhost ports) and persistent local saves at `%LocalAppData%\CityStoryPC\save.json`.
+1. **First-Run APK Importer (`web/setup.html`)** — drop your City Story `.apk` onto the window once; the app decodes everything into your local OS app-data folder and launches straight into the game.
+2. **Pure Node.js `.s8i` / `.s8h` Texture Decoder (`scripts/s8_decoder.js`)** — decodes Storm8's custom 16-bit OpenGL ES textures (`RGB565` & `RGBA4444`, bottom-up row order + alpha hitmask) directly to PNG with zero native/C++ dependencies.
+3. **Offline Isometric Game Engine (`web/`)** — true 30° isometric projection (`128×74` tile grid with `0.5`-tile support), painter's depth sorting, 16-state autotiling roads & rivers, construction scaffolding & timers, factory contracts, happiness/population bonus multiplier, quests, storage, land expansions (up to 24×24), photo snapshots, speed toggle (`1x / 5x / 20x`), and optional Sandbox Mode.
+4. **Cross-Platform Electron Shell (`electron/`)** — identical Chromium Canvas rendering and WAV playback on Windows, macOS, and Linux, with local `citystory://` asset serving and persistent `save.json` storage in your OS user-data directory.
 
 ---
 
-## Prerequisites (Windows)
+## Quick Start (Windows / macOS / Linux)
 
-- **Node.js** 18+ (zero `npm install` needed — uses only Node built-ins)
-- **.NET 9 SDK** (for building the native Windows `CityStory.exe`)
-- **Microsoft Edge WebView2 Runtime** (pre-installed on Windows 10/11)
-- Your own **City Story APK** (`com.teamlava.citystory`, v1.0.8)
-
----
-
-## Quick Start (One Command)
-
-```powershell
-.\build.ps1 -ApkPath "C:\path\to\CityStory_1.0.8.apk"
-```
-
-This extracts & decodes all assets locally, generates `web/data/catalog.js`, compiles `dist/CityStory.exe`, and assembles a portable `dist/` folder.
-
-Then run:
-
-```powershell
-.\dist\CityStory.exe
-```
-
-### Manual Steps (or Browser-Only Mode)
+Only **Node.js 18+** is required:
 
 ```bash
-# 1. Extract & decode textures, UI, and WAV audio from your APK
-node scripts/extract_apk.js /path/to/CityStory.apk
-
-# 2. Generate the building & contract catalog
-node scripts/build_catalog.js
-
-# 3. Compile native Windows app (Windows only)
-dotnet build native/CityStory.csproj -c Release -o dist
+npm install
+npm start
 ```
 
-*(On macOS/Linux, you can serve the `web/` folder with any local static server after steps 1 & 2 and play in any desktop browser.)*
+On first launch, drop your **City Story APK** (`com.teamlava.citystory`, v1.0.8) into the window. Extraction takes ~3 seconds, and every future launch opens directly into your city!
+
+### Building Standalone Packages (Asset-Free)
+
+You can package clean, asset-free desktop executables for distribution (players drop their own APK on first launch):
+
+```bash
+npm run dist:win     # Portable Windows .exe
+npm run dist:mac     # macOS .dmg
+npm run dist:linux   # Linux .AppImage
+```
+
+### Optional CLI Extraction (Browser-Only Mode)
+
+If you prefer running the extractor manually and serving `web/` in any browser:
+
+```bash
+node scripts/extract_apk.js /path/to/CityStory.apk
+node scripts/build_catalog.js
+```
 
 ---
 
@@ -75,21 +67,21 @@ dotnet build native/CityStory.csproj -c Release -o dist
 ## Repository Structure
 
 ```text
-├── build.ps1                 # End-to-end Windows build script
+├── electron/
+│   ├── main.js               # Cross-platform Electron window, citystory:// protocol & IPC
+│   └── preload.js            # Context-isolated bridge for saves & APK import
 ├── scripts/
-│   ├── s8_decoder.js         # Storm8 .s8i / .s8h 16-bit texture decoder
-│   ├── extract_apk.js        # Pure-Node ZIP/APK extractor & ICO builder
-│   └── build_catalog.js      # Generates web/data/catalog.js from decoded assets
-├── web/
-│   ├── index.html            # Game HUD & modals
-│   ├── css/style.css         # UI styling
-│   └── js/
-│       ├── audio.js          # Looping BGM & SFX manager
-│       ├── engine.js         # Isometric canvas renderer & input handler
-│       └── game.js           # Offline simulation, quests, saves & UI logic
-└── native/
-    ├── CityStory.csproj      # .NET 9 WinForms + WebView2 project
-    └── Program.cs            # Native desktop wrapper & save.json bridge
+│   ├── s8_decoder.js         # Storm8 .s8i / .s8h 16-bit texture decoder (zero deps)
+│   ├── extract_apk.js        # Pure-Node ZIP/APK extractor
+│   └── build_catalog.js      # Generates catalog.js from decoded sprite metadata
+└── web/
+    ├── setup.html            # First-run drag-and-drop APK importer UI
+    ├── index.html            # Game HUD & modals
+    ├── css/style.css         # UI styling
+    └── js/
+        ├── audio.js          # Looping BGM & SFX manager
+        ├── engine.js         # Isometric canvas renderer & input handler
+        └── game.js           # Offline simulation, quests, saves & UI logic
 ```
 
 ## Disclaimer

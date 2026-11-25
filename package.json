@@ -1,12 +1,47 @@
 {
   "name": "city-story-pc",
   "version": "1.0.0",
-  "description": "Offline native Windows PC reimplementation & asset extractor for classic City Story (bring your own APK).",
+  "description": "Cross-platform offline PC reimplementation & .s8i/.s8h asset extractor for classic City Story (bring your own APK).",
+  "main": "electron/main.js",
   "private": true,
   "scripts": {
+    "start": "electron .",
     "extract": "node scripts/extract_apk.js",
     "catalog": "node scripts/build_catalog.js",
-    "build:native": "dotnet build native/CityStory.csproj -c Release -o dist"
+    "dist:win": "electron-builder --win",
+    "dist:mac": "electron-builder --mac",
+    "dist:linux": "electron-builder --linux"
+  },
+  "devDependencies": {
+    "electron": "^35.1.5",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.community.citystorypc",
+    "productName": "City Story PC",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/**/*",
+      "scripts/**/*",
+      "web/index.html",
+      "web/setup.html",
+      "web/css/**/*",
+      "web/js/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "portable"
+    },
+    "mac": {
+      "target": "dmg",
+      "category": "public.app-category.simulation-games"
+    },
+    "linux": {
+      "target": "AppImage",
+      "category": "Game"
+    }
   },
   "license": "MIT"
 }

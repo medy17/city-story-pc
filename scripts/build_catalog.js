@@ -1,10 +1,6 @@
 const fs = require("fs");
 const path = require("path");
 
-const webDir = path.resolve(__dirname, "..", "web");
-const meta = JSON.parse(fs.readFileSync(path.join(webDir, "assets/sprite_meta.json"), "utf8"));
-const thumbs = new Set(fs.readdirSync(path.join(webDir, "assets/thumbs")));
-
 // Curated authentic names from visual inspection of every decoded sprite sheet!
 const NAMES = {
   // === RESIDENCES (1xxx) ===
@@ -295,28 +291,33 @@ const NAMES = {
   9014: "World Cup Stadium"
 };
 
-function getTileSize(id, spriteKey) {
-  const m = meta[spriteKey];
-  if (!m) return 1;
-  if (id === 4001 || id === 4012) return 1;
-  if (m.w <= 64) return 0.5;
-  if (m.w <= 128) return 1;
-  if (m.w <= 256) return 2;
-  if (id === 2049) return 3;
-  return 4;
-}
+function buildCatalog(assetsDir, outputCatalogPath) {
+  const meta = JSON.parse(fs.readFileSync(path.join(assetsDir, "sprite_meta.json"), "utf8"));
+  const thumbsDir = path.join(assetsDir, "thumbs");
+  const thumbs = new Set(fs.existsSync(thumbsDir) ? fs.readdirSync(thumbsDir) : []);
 
-const items = [];
-const allKeys = Object.keys(meta);
+  function getTileSize(id, spriteKey) {
+    const m = meta[spriteKey];
+    if (!m) return 1;
+    if (id === 4001 || id === 4012) return 1;
+    if (m.w <= 64) return 0.5;
+    if (m.w <= 128) return 1;
+    if (m.w <= 256) return 2;
+    if (id === 2049) return 3;
+    return 4;
+  }
 
-function findSpriteKey(id) {
-  if (id === 4001) return "item4001-0";
-  if (id === 4012) return "item4012-0";
-  return allKeys.find(k => k.toLowerCase() === `item${id}`) || null;
-}
-function findRotKey(id) {
-  return allKeys.find(k => k.toLowerCase() === `item${id + 100}`) || null;
-}
+  const items = [];
+  const allKeys = Object.keys(meta);
+
+  function findSpriteKey(id) {
+    if (id === 4001) return "item4001-0";
+    if (id === 4012) return "item4012-0";
+    return allKeys.find(k => k.toLowerCase() === `item${id}`) || null;
+  }
+  function findRotKey(id) {
+    return allKeys.find(k => k.toLowerCase() === `item${id + 100}`) || null;
+  }
 
 // Deterministic hash for nice progression curves
 const sortedIds = Object.keys(NAMES).map(Number).sort((a, b) => a - b);
@@ -423,9 +424,9 @@ for (const id of sortedIds) {
     texW: m.w,
     texH: m.h,
     sprite: `assets/sprites/${spriteKey}.png`,
-    halo: fs.existsSync(path.join(webDir, `assets/halos/${spriteKey}.png`)) ? `assets/halos/${spriteKey}.png` : null,
+    halo: fs.existsSync(path.join(assetsDir, `halos/${spriteKey}.png`)) ? `assets/halos/${spriteKey}.png` : null,
     rotSprite: rotKey ? `assets/sprites/${rotKey}.png` : null,
-    rotHalo: rotKey && fs.existsSync(path.join(webDir, `assets/halos/${rotKey}.png`)) ? `assets/halos/${rotKey}.png` : null,
+    rotHalo: rotKey && fs.existsSync(path.join(assetsDir, `halos/${rotKey}.png`)) ? `assets/halos/${rotKey}.png` : null,
     thumb,
     cost,
     cashCost,
@@ -492,13 +493,25 @@ const QUESTS = [
   { id: 7, title: "Bustling Metropolis", desc: "Reach 500 Population and expand your city borders!", goal: { type: "stats", pop: 500, happy: 500 }, rewardCoins: 8000, rewardXp: 500, rewardCash: 10 }
 ];
 
-fs.mkdirSync(path.join(webDir, "data"), { recursive: true });
-const out = `// Auto-generated City Story PC Catalog (${items.length} authentic APK items)
+  fs.mkdirSync(path.dirname(outputCatalogPath), { recursive: true });
+  const out = `// Auto-generated City Story PC Catalog (${items.length} authentic APK items)
 window.CITY_CATALOG = ${JSON.stringify({ items, contracts: CONTRACTS, levelXp: LEVEL_XP, factoryLimits: FACTORY_LIMITS, expansions: EXPANSIONS, quests: QUESTS }, null, 2)};
 `;
-fs.writeFileSync(path.join(webDir, "data/catalog.js"), out);
-console.log(`Generated catalog.js with ${items.length} items, ${CONTRACTS.length} contracts, ${QUESTS.length} quests!`);
-const catCounts = {};
-for (const it of items) catCounts[it.category] = (catCounts[it.category] || 0) + 1;
-console.log("Category counts:", catCounts);
+  fs.writeFileSync(outputCatalogPath, out);
+
+  const catCounts = {};
+  for (const it of items) catCounts[it.category] = (catCounts[it.category] || 0) + 1;
+  return { items: items.length, contracts: CONTRACTS.length, quests: QUESTS.length, catCounts };
+}
+
+if (require.main === module) {
+  const defaultWeb = path.resolve(__dirname, "..", "web");
+  const assetsDir = process.argv[2] ? path.resolve(process.argv[2]) : path.join(defaultWeb, "assets");
+  const outPath = process.argv[3] ? path.resolve(process.argv[3]) : path.join(defaultWeb, "data", "catalog.js");
+  const stats = buildCatalog(assetsDir, outPath);
+  console.log(`Generated catalog.js with ${stats.items} items, ${stats.contracts} contracts, ${stats.quests} quests!`);
+  console.log("Category counts:", stats.catCounts);
+}
+
+module.exports = { buildCatalog };
 

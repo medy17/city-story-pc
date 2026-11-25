@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>City Story PC — First-Time Setup</title>
+  <style>
+    * { box-sizing: border-box; user-select: none; }
+    html, body {
+      margin: 0; padding: 0; width: 100%; height: 100%;
+      font-family: "Gotham Rounded", "Poppins", "Segoe UI", system-ui, sans-serif;
+      background: radial-gradient(circle at top, #74dcff 0%, #2a8bd4 55%, #164f8a 100%);
+      display: flex; align-items: center; justify-content: center;
+      color: #16334d;
+    }
+    .card {
+      width: min(92vw, 560px);
+      background: #f2f9ff;
+      border: 4px solid #fff;
+      border-radius: 24px;
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.42);
+      padding: 32px;
+      text-align: center;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 30px;
+      font-weight: 800;
+      color: #17579c;
+    }
+    .sub {
+      margin: 0 0 22px;
+      font-size: 14px;
+      line-height: 1.5;
+      color: #416280;
+    }
+    .drop-zone {
+      border: 3px dashed #5ba5e0;
+      border-radius: 18px;
+      background: #e3f2ff;
+      padding: 34px 20px;
+      cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+    }
+    .drop-zone.dragover {
+      background: #d0ebff;
+      border-color: #1e78c8;
+      transform: scale(1.01);
+    }
+    .drop-icon { font-size: 46px; margin-bottom: 10px; }
+    .drop-title { font-size: 18px; font-weight: 800; color: #164b80; margin-bottom: 6px; }
+    .drop-hint { font-size: 13px; color: #4e6f8f; }
+    .btn {
+      margin-top: 18px;
+      border: 2px solid #fff;
+      border-radius: 14px;
+      background: linear-gradient(180deg, #7be639 0%, #44a814 55%, #2f850a 100%);
+      color: #fff;
+      font-family: inherit;
+      font-size: 16px;
+      font-weight: 800;
+      padding: 12px 26px;
+      cursor: pointer;
+      box-shadow: 0 4px 0 rgba(0,0,0,0.25), 0 8px 16px rgba(0,0,0,0.2);
+    }
+    .btn:hover { filter: brightness(1.07); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .progress-wrap {
+      display: none;
+      margin-top: 22px;
+      text-align: left;
+    }
+    .progress-wrap.visible { display: block; }
+    .bar-bg {
+      height: 16px;
+      background: #cfe3f5;
+      border-radius: 999px;
+      overflow: hidden;
+      border: 2px solid #fff;
+    }
+    .bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #3ac9ff, #54d936);
+      transition: width 0.2s ease;
+    }
+    .status {
+      margin-top: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #1e4b75;
+      text-align: center;
+    }
+    .error {
+      margin-top: 14px;
+      padding: 10px 14px;
+      border-radius: 12px;
+      background: #ffe3e3;
+      color: #a61e1e;
+      font-size: 13px;
+      font-weight: 700;
+      display: none;
+    }
+    .error.visible { display: block; }
+    .note {
+      margin-top: 20px;
+      font-size: 12px;
+      color: #63809c;
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>City Story PC</h1>
+    <p class="sub">
+      No copyrighted assets are bundled with this app.<br />
+      Drop your own <b>City Story APK</b> (<code>com.teamlava.citystory</code>) once to decode all sprites, UI graphics, and music locally.
+    </p>
+
+    <div class="drop-zone" id="drop-zone">
+      <div class="drop-icon">&#128230;</div>
+      <div class="drop-title">Drop your City Story .apk file here</div>
+      <div class="drop-hint">or click below to browse</div>
+      <button class="btn" id="btn-pick">Choose City Story APK...</button>
+    </div>
+
+    <div class="progress-wrap" id="progress-wrap">
+      <div class="bar-bg"><div class="bar-fill" id="bar-fill"></div></div>
+      <div class="status" id="status-text">Starting...</div>
+    </div>
+
+    <div class="error" id="error-box"></div>
+
+    <div class="note">
+      Assets are extracted once into your local app data folder and never uploaded anywhere.
+    </div>
+  </div>
+
+  <script>
+    const dropZone = document.getElementById("drop-zone");
+    const btnPick = document.getElementById("btn-pick");
+    const progressWrap = document.getElementById("progress-wrap");
+    const barFill = document.getElementById("bar-fill");
+    const statusText = document.getElementById("status-text");
+    const errorBox = document.getElementById("error-box");
+
+    let busy = false;
+
+    window.cityStoryHost.onApkProgress(({ pct, message }) => {
+      barFill.style.width = pct + "%";
+      statusText.textContent = message;
+    });
+
+    async function runImport(apkPath) {
+      if (busy || !apkPath) return;
+      busy = true;
+      btnPick.disabled = true;
+      errorBox.classList.remove("visible");
+      progressWrap.classList.add("visible");
+      barFill.style.width = "5%";
+      statusText.textContent = "Preparing extraction...";
+
+      const res = await window.cityStoryHost.importApk(apkPath);
+      if (res.ok) {
+        barFill.style.width = "100%";
+        statusText.textContent = `Decoded ${res.stats.s8iCount} sprites & ${res.catStats.items} buildings! Starting game...`;
+        setTimeout(() => window.cityStoryHost.launchGame(), 500);
+      } else {
+        busy = false;
+        btnPick.disabled = false;
+        errorBox.textContent = res.error || "Failed to extract APK.";
+        errorBox.classList.add("visible");
+      }
+    }
+
+    btnPick.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      const apkPath = await window.cityStoryHost.pickApk();
+      if (apkPath) runImport(apkPath);
+    });
+
+    dropZone.addEventListener("click", async () => {
+      const apkPath = await window.cityStoryHost.pickApk();
+      if (apkPath) runImport(apkPath);
+    });
+
+    dropZone.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      dropZone.classList.add("dragover");
+    });
+    dropZone.addEventListener("dragleave", () => dropZone.classList.remove("dragover"));
+    dropZone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      dropZone.classList.remove("dragover");
+      const file = e.dataTransfer.files && e.dataTransfer.files[0];
+      if (!file) return;
+      const apkPath = window.cityStoryHost.getPathForFile(file);
+      runImport(apkPath);
+    });
+  </script>
+</body>
+</html>

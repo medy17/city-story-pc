@@ -4,15 +4,18 @@
 *.s8h
 web/assets/
 web/data/catalog.js
-native/app.ico
 
-# Build outputs
+# Dependencies & build outputs
+node_modules/
 dist/
-native/bin/
-native/obj/
+out/
+release/
 *.exe
-*.dll
-*.pdb
+*.dmg
+*.AppImage
+*.deb
+*.rpm
+*.zip
 
 # Local save / OS / editor files
 save.json
@@ -21,4 +24,3 @@ save.json
 Thumbs.db
 .vscode/
 .idea/
-node_modules/
