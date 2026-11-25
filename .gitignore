@@ -1,0 +1,24 @@
+# Copyrighted / user-supplied game files & extracted assets
+*.apk
+*.s8i
+*.s8h
+web/assets/
+web/data/catalog.js
+native/app.ico
+
+# Build outputs
+dist/
+native/bin/
+native/obj/
+*.exe
+*.dll
+*.pdb
+
+# Local save / OS / editor files
+save.json
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+node_modules/

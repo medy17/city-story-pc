@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>City Story — PC Edition</title>
+  <link rel="icon" type="image/png" href="assets/ui/icon.png" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <!-- Splash / Title Screen -->
+  <div id="splash-screen">
+    <div class="splash-card">
+      <img class="splash-art" src="assets/ui/title_landscape.png" alt="City Story" />
+      <div class="splash-overlay">
+        <div class="splash-badge">PC NATIVE EDITION &bull; 100% ORIGINAL ASSETS &bull; OFFLINE PLAY</div>
+        <div class="splash-actions">
+          <button id="btn-play" class="glossy-btn green large">PLAY CITY STORY</button>
+        </div>
+        <div class="splash-hint">Drag to pan &bull; Scroll to zoom &bull; R / Right-Click to rotate &bull; Esc to cancel</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Game Viewport -->
+  <canvas id="game-canvas"></canvas>
+
+  <!-- Floating Info Toast -->
+  <div id="toast-banner" class="hidden"></div>
+
+  <!-- Top HUD Bar -->
+  <div id="hud-top" class="hud hidden">
+    <div class="hud-left-cluster">
+      <!-- City Name & Level -->
+      <div class="hud-pill level-pill" id="btn-city-info" title="Click to rename your city">
+        <div class="xp-bar-track">
+          <div class="xp-bar-fill" id="hud-xp-fill"></div>
+        </div>
+        <img class="pill-bg" src="assets/ui/header_level.png" alt="" />
+        <span class="level-num" id="hud-level">1</span>
+        <div class="xp-col">
+          <div class="city-name-label" id="hud-city-name">My City</div>
+          <div class="xp-text" id="hud-xp-text">0 / 60 XP</div>
+        </div>
+      </div>
+
+      <!-- Population & Happiness -->
+      <div class="hud-pill pop-pill" id="btn-happiness-info" title="Keep Happiness higher than Population for +25% coin bonus!">
+        <img class="pill-bg" src="assets/ui/header_population.png" alt="" />
+        <div class="pop-col">
+          <div class="pop-line"><img src="assets/ui/population_xsmall.png" alt="" /><span id="hud-pop">0</span></div>
+          <div class="happy-line"><img src="assets/ui/happiness_xsmall.png" alt="" /><span id="hud-happy">0</span></div>
+        </div>
+        <img class="happy-face" id="hud-happy-icon" src="assets/ui/happiness_icon_4.png" alt="Happiness" />
+      </div>
+
+      <!-- Coins -->
+      <div class="hud-pill coins-pill" title="Coins">
+        <img class="pill-bg" src="assets/ui/header_coins.png" alt="" />
+        <span class="currency-val" id="hud-coins">2,500</span>
+      </div>
+
+      <!-- City Cash -->
+      <div class="hud-pill cash-pill" title="City Cash (earned on Level Up & Quests)">
+        <img class="pill-bg" src="assets/ui/header_money.png" alt="" />
+        <span class="currency-val cash-val" id="hud-cash">25</span>
+      </div>
+    </div>
+
+    <div class="hud-right-cluster">
+      <button class="hud-mini-btn" id="btn-speed" title="Game Speed Multiplier">1x</button>
+      <button class="hud-mini-btn icon-only" id="btn-sound" title="Toggle Sound & Music">
+        <img id="img-sound" src="assets/ui/sound_button.png" alt="Sound" />
+      </button>
+      <button class="hud-mini-btn icon-only" id="btn-camera" title="Snap City Photo (PNG)">
+        <img src="assets/ui/header_button_camera.png" alt="Photo" />
+      </button>
+      <button class="hud-mini-btn icon-only" id="btn-settings" title="Settings & Save Options">
+        &#9881;
+      </button>
+    </div>
+  </div>
+
+  <!-- Left Quest Badge -->
+  <div id="hud-left" class="hud hidden">
+    <button class="quest-fab" id="btn-quests" title="City Quests">
+      <img src="assets/ui/quest_button.png" alt="Quests" />
+      <span class="quest-badge hidden" id="quest-badge">!</span>
+      <span class="fab-label">Quests</span>
+    </button>
+    <button class="quest-fab" id="btn-storage" title="Inventory / Storage">
+      <img src="assets/ui/storage_button.png" alt="Storage" />
+      <span class="quest-badge hidden" id="storage-badge">0</span>
+      <span class="fab-label">Storage</span>
+    </button>
+  </div>
+
+  <!-- Active Placement / Edit Mode Bar -->
+  <div id="mode-bar" class="hidden">
+    <img id="mode-thumb" src="" alt="" class="hidden" />
+    <div class="mode-info">
+      <div id="mode-title">Placing Item</div>
+      <div id="mode-subtitle">Click green tiles to place &bull; Right-click or R to rotate</div>
+    </div>
+    <button id="btn-mode-rotate" class="glossy-btn blue small hidden">Rotate (R)</button>
+    <button id="btn-mode-cancel" class="glossy-btn red small">Done (Esc)</button>
+  </div>
+
+  <!-- Bottom Right Tool Dock (Home Mode) -->
+  <div id="hud-dock-home" class="hud dock hidden">
+    <button class="dock-btn" id="btn-collect-all" title="Collect all ready Coins & Contracts">
+      <img src="assets/ui/tools_harvest_button.png" alt="Collect" />
+      <span>Collect All</span>
+    </button>
+    <button class="dock-btn" id="btn-edit-mode" title="Move, Rotate, Store, or Sell">
+      <img src="assets/ui/tools_edit_button.png" alt="Design" />
+      <span>Design</span>
+    </button>
+    <button class="dock-btn primary-dock" id="btn-market" title="Build Market (M)">
+      <img src="assets/ui/tools_market_button.png" alt="Build" />
+      <span>Build</span>
+    </button>
+  </div>
+
+  <!-- Bottom Right Edit Dock (Design Mode) -->
+  <div id="hud-dock-edit" class="hud dock hidden">
+    <button class="dock-btn small-dock" id="btn-tool-move" title="Move Buildings">
+      <img src="assets/ui/move_button.png" alt="Move" />
+      <span>Move</span>
+    </button>
+    <button class="dock-btn small-dock" id="btn-tool-rotate" title="Rotate Buildings">
+      <img src="assets/ui/rotate_button.png" alt="Rotate" />
+      <span>Rotate</span>
+    </button>
+    <button class="dock-btn small-dock" id="btn-tool-store" title="Put in Storage">
+      <img src="assets/ui/storage_button.png" alt="Store" />
+      <span>Store</span>
+    </button>
+    <button class="dock-btn small-dock" id="btn-tool-sell" title="Sell Buildings">
+      <img src="assets/ui/delete_button.png" alt="Sell" />
+      <span>Sell</span>
+    </button>
+    <button class="dock-btn" id="btn-exit-edit" title="Exit Design Mode (Esc)">
+      <img src="assets/ui/tools_close_button.png" alt="Done" />
+      <span>Done</span>
+    </button>
+  </div>
+
+  <!-- Zoom Controls (Bottom Left) -->
+  <div id="hud-zoom" class="hud hidden">
+    <button class="zoom-btn" id="btn-zoom-in" title="Zoom In (+)">+</button>
+    <button class="zoom-btn" id="btn-zoom-reset" title="Center City">&#8962;</button>
+    <button class="zoom-btn" id="btn-zoom-out" title="Zoom Out (-)">&minus;</button>
+  </div>
+
+  <!-- Tooltip for hovered / inspected building -->
+  <div id="building-tooltip" class="hidden"></div>
+
+  <!-- MODAL BACKDROP -->
+  <div id="modal-backdrop" class="hidden">
+    <!-- Market Modal -->
+    <div id="modal-market" class="modal-window hidden">
+      <div class="modal-header">
+        <div class="modal-title">City Story Market</div>
+        <input type="text" id="market-search" placeholder="Search 275+ buildings..." autocomplete="off" />
+        <button class="modal-close" data-close="modal-market">
+          <img src="assets/ui/close_button.png" alt="Close" />
+        </button>
+      </div>
+      <div class="market-tabs" id="market-tabs">
+        <button class="tab-btn active" data-cat="residence">Residences</button>
+        <button class="tab-btn" data-cat="business">Businesses</button>
+        <button class="tab-btn" data-cat="factory">Factories</button>
+        <button class="tab-btn" data-cat="roads">Roads &amp; Water</button>
+        <button class="tab-btn" data-cat="decor">Decorations</button>
+        <button class="tab-btn" data-cat="landmarks">Landmarks</button>
+        <button class="tab-btn" data-cat="expand">Expand Land</button>
+      </div>
+      <div class="market-grid" id="market-grid"></div>
+    </div>
+
+    <!-- Factory Contracts Modal -->
+    <div id="modal-contracts" class="modal-window medium hidden">
+      <div class="modal-header">
+        <div class="modal-title">Factory Contracts</div>
+        <button class="modal-close" data-close="modal-contracts">
+          <img src="assets/ui/close_button.png" alt="Close" />
+        </button>
+      </div>
+      <div class="modal-sub" id="contracts-subtitle">Choose a production contract for your factory:</div>
+      <div class="contracts-grid" id="contracts-grid"></div>
+    </div>
+
+    <!-- Building Inspect / Manage Modal -->
+    <div id="modal-inspect" class="modal-window small hidden">
+      <div class="modal-header">
+        <div class="modal-title" id="inspect-title">Building</div>
+        <button class="modal-close" data-close="modal-inspect">
+          <img src="assets/ui/close_button.png" alt="Close" />
+        </button>
+      </div>
+      <div class="inspect-body" id="inspect-body"></div>
+    </div>
+
+    <!-- Storage Modal -->
+    <div id="modal-storage" class="modal-window medium hidden">
+      <div class="modal-header">
+        <div class="modal-title">City Storage</div>
+        <button class="modal-close" data-close="modal-storage">
+          <img src="assets/ui/close_button.png" alt="Close" />
+        </button>
+      </div>
+      <div class="market-grid" id="storage-grid"></div>
+    </div>
+
+    <!-- Quests Modal -->
+    <div id="modal-quests" class="modal-window medium hidden">
+      <div class="modal-header">
+        <div class="modal-title">Mayor's Quests</div>
+        <button class="modal-close" data-close="modal-quests">
+          <img src="assets/ui/close_button.png" alt="Close" />
+        </button>
+      </div>
+      <div class="quests-list" id="quests-list"></div>
+    </div>
+
+    <!-- Settings / City Info Modal -->
+    <div id="modal-settings" class="modal-window small hidden">
+      <div class="modal-header">
+        <div class="modal-title">Settings &amp; City Options</div>
+        <button class="modal-close" data-close="modal-settings">
+          <img src="assets/ui/close_button.png" alt="Close" />
+        </button>
+      </div>
+      <div class="settings-body">
+        <label class="setting-row">
+          <span>City Name</span>
+          <input type="text" id="input-city-name" maxlength="24" />
+        </label>
+        <label class="setting-row">
+          <span>Background Music</span>
+          <input type="checkbox" id="chk-music" checked />
+        </label>
+        <label class="setting-row">
+          <span>Sound Effects</span>
+          <input type="checkbox" id="chk-sfx" checked />
+        </label>
+        <label class="setting-row">
+          <span>Show Grid Lines Always</span>
+          <input type="checkbox" id="chk-grid" />
+        </label>
+        <label class="setting-row">
+          <span>Sandbox Mode (Unlock All &amp; Free Build)</span>
+          <input type="checkbox" id="chk-sandbox" />
+        </label>
+        <div class="settings-divider"></div>
+        <div class="settings-actions">
+          <button id="btn-export-save" class="glossy-btn blue small">Export Save</button>
+          <button id="btn-import-save" class="glossy-btn blue small">Import Save</button>
+          <button id="btn-reset-city" class="glossy-btn red small">Reset City</button>
+        </div>
+        <input type="file" id="file-import-save" accept=".json" class="hidden" />
+        <div class="settings-footer" id="save-status">Auto-saved locally</div>
+      </div>
+    </div>
+
+    <!-- Level Up Modal -->
+    <div id="modal-levelup" class="modal-window small celebration hidden">
+      <div class="levelup-star">LEVEL UP!</div>
+      <div class="levelup-num" id="levelup-num">Level 2</div>
+      <div class="levelup-rewards" id="levelup-rewards"></div>
+      <div class="levelup-unlocks" id="levelup-unlocks"></div>
+      <button class="glossy-btn green" data-close="modal-levelup">Awesome!</button>
+    </div>
+  </div>
+
+  <script src="data/catalog.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>
